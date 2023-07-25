@@ -8,7 +8,10 @@ MPLSETUPCFG=/Users/zhanwenchen/mplsetup.cfg pip install --no-binary :all: --only
 
 # Spacy
 # For Linux:
-LDFLAGS="-L/opt/homebrew/opt/openblas/lib" CPPFLAGS="-I/opt/homebrew/opt/openblas/include" PKG_CONFIG_PATH="/opt/homebrew/opt/openblas/lib/pkgconfig" pip install --no-binary :all: spacy
+pip install --no-binary :all: spacy cupy-cuda11x
+python -m cupyx.tools.install_library --cuda 11.x --library cutensor
+python -m cupyx.tools.install_library --cuda 11.x --library nccl
+python -m cupyx.tools.install_library --cuda 11.x --library cudnn
 # For Apple, install spacy like so:
 # pip install -U pip setuptools wheel
 pip install --no-binary :all: 'spacy[apple]'
