@@ -6,14 +6,8 @@ conda install python=3.10
 
 MPLSETUPCFG=/Users/zhanwenchen/mplsetup.cfg pip install --no-binary :all: --only-binary torch,torchvision,torchaudio,flair transformers datasets torch torchvision torchaudio tqdm radboud-el
 
-# Spacy
-# For Linux:
-pip install --no-binary :all: spacy cupy-cuda11x
-python -m cupyx.tools.install_library --cuda 11.x --library cutensor
-python -m cupyx.tools.install_library --cuda 11.x --library nccl
-python -m cupyx.tools.install_library --cuda 11.x --library cudnn
+# Spacy:
 # For Apple, install spacy like so:
-# pip install -U pip setuptools wheel
 pip install --no-binary :all: 'spacy[apple]'
 
 python -m spacy download en_core_web_md
