@@ -9,10 +9,10 @@ The implemtation of Match is in process.py
 
 ### Execute MAMA(Match and Map) section
 
-Do note the extracted results is still quite noisy and should then filtered based on relation unique pair frequency 
+Do note the extracted results is still quite noisy and should then filtered based on relation unique pair frequency
 
 ```
-python extract.py examples/bob_dylan.txt bert-large-cased-bob_dynlan.jsonl --language_model bert-large-cased --use_cuda true
+python extract.py examples/bob_dylan.txt bert-large-cased-bob_dynlan.jsonl --language_model bert-large-cased --use_cuda false
 ```
 
 ## Map
@@ -34,7 +34,7 @@ Adverbs extracted from here : [https://raw.githubusercontent.com/janester/mad_li
 ### Environment setup
 
 
-This repo is run using virtualenv 
+This repo is run using virtualenv
 
 ```
 virtualenv -p python3 env

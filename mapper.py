@@ -1,13 +1,12 @@
 from constant import invalid_relations_set
 
 from REL.db.generic import GenericLookup
-sqlite_path = "../../Documents/wiki_2020/generated"
+sqlite_path = '/Users/zhanwenchen/REL/data/wiki_2019/generated'
 emb = GenericLookup("entity_word_embedding", save_dir=sqlite_path, table_name="embeddings")
 
 
-
 def Map(head, relations, tail, top_first=True, best_scores = True):
-    if head == None or tail == None or relations == None:
+    if head is None or tail is None or relations is None:
         return {}
     head_p_e_m = emb.wiki(str(head), 'wiki')
     if head_p_e_m is None:
@@ -32,7 +31,7 @@ def deduplication(triplets):
         if key not in unique_pairs:
             unique_pairs.append(key)
             pair_confidence.append(conf)
-    
+
     unique_triplets = []
     for idx, unique_pair in enumerate(unique_pairs):
         h, r, t = unique_pair.split('\t')

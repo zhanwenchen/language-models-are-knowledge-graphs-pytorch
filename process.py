@@ -1,22 +1,25 @@
 from utils import compress_attention, create_mapping, BFS, build_graph, is_word
 from multiprocessing import Pool
-import spacy
 import en_core_web_md
 import torch
+from torch import no_grad as torch_no_grad
 from transformers import AutoTokenizer, BertModel, GPT2Model
 from constant import invalid_relations_set
+import json
+from tqdm import tqdm
 
 
-def process_matrix(attentions, layer_idx = -1, head_num = 0, avg_head=False, trim=True, use_cuda=True):
+@torch_no_grad()
+def process_matrix(attentions, layer_idx = -1, head_num = 0, avg_head=False, trim=True, device=None):
     if avg_head:
-        if use_cuda:
-            attn =  torch.mean(attentions[0][layer_idx], 0).cpu()
+        if device:
+            attn = torch.mean(attentions[0][layer_idx], 0).cpu()
         else:
             attn = torch.mean(attentions[0][layer_idx], 0)
         attention_matrix = attn.detach().numpy()
     else:
         attn = attentions[0][layer_idx][head_num]
-        if use_cuda:
+        if device:
             attn = attn.cpu()
         attention_matrix = attn.detach().numpy()
 
@@ -53,19 +56,19 @@ def filter_relation_sets(params):
             return {'h': head, 't': tail, 'r': relations, 'c': confidence }
     return {}
 
-def parse_sentence(sentence, tokenizer, encoder, nlp, use_cuda=True):
+
+@torch_no_grad()
+def parse_sentence(sentence, tokenizer, encoder, nlp, device, num_processes):
     '''Implement the match part of MAMA
 
     '''
     tokenizer_name = str(tokenizer.__str__)
 
-    inputs, tokenid2word_mapping, token2id, noun_chunks  = create_mapping(sentence, return_pt=True, nlp=nlp, tokenizer=tokenizer)
+    inputs, tokenid2word_mapping, token2id, noun_chunks = create_mapping(sentence, return_pt=True, nlp=nlp, tokenizer=tokenizer)
 
-    with torch.no_grad():
-        if use_cuda:
-            for key in inputs.keys():
-                inputs[key] = inputs[key].cuda()
-        outputs = encoder(**inputs, output_attentions=True)
+    for key in inputs.keys():
+        inputs[key] = inputs[key].to(device)
+    outputs = encoder(**inputs, output_attentions=True)
     trim = True
     if 'GPT2' in tokenizer_name:
         trim  = False
@@ -73,7 +76,7 @@ def parse_sentence(sentence, tokenizer, encoder, nlp, use_cuda=True):
     '''
     Use average of last layer attention : page 6, section 3.1.2
     '''
-    attention = process_matrix(outputs[2], avg_head=True, trim=trim, use_cuda=use_cuda)
+    attention = process_matrix(outputs[2], avg_head=True, trim=trim, device=device)
 
     merged_attention = compress_attention(attention, tokenid2word_mapping)
     attn_graph = build_graph(merged_attention)
@@ -89,14 +92,14 @@ def parse_sentence(sentence, tokenizer, encoder, nlp, use_cuda=True):
     all_relation_pairs = []
     id2token = { value: key for key, value in token2id.items()}
 
-    with Pool(10) as pool:
+    with Pool(processes=num_processes) as pool:
         params = [  ( pair[0], pair[1], attn_graph, max(tokenid2word_mapping), black_list_relation, ) for pair in tail_head_pairs]
         for output in pool.imap_unordered(bfs, params):
             if len(output):
                 all_relation_pairs += [ (o, id2token) for o in output ]
 
     triplet_text = []
-    with Pool(10, global_initializer, (nlp,)) as pool:
+    with Pool(processes=num_processes, initializer=global_initializer, initargs=(nlp,)) as pool:
         for triplet in pool.imap_unordered(filter_relation_sets, all_relation_pairs):
             if len(triplet) > 0:
                 triplet_text.append(triplet)
@@ -104,8 +107,7 @@ def parse_sentence(sentence, tokenizer, encoder, nlp, use_cuda=True):
 
 
 if __name__ == "__main__":
-    import json
-    from tqdm import tqdm
+
 
     nlp = en_core_web_md.load()
     selected_model = 'gpt2-medium'
